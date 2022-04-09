@@ -1,0 +1,102 @@
+---
+title: "Exercises 5"
+author: "Jan Hohenheim"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+## Setup
+
+```{r loading}
+rm(list = ls())
+library(ggplot2)
+library(ggthemes)
+library(dplyr)
+library(purrr)
+library(cowplot)
+library(latex2exp)
+library(glue)
+
+theme <- 
+  theme_solarized() #+ 
+  #theme(text = element_text(family = "Helvetica Neue"))
+```
+
+```{r data}
+HbSS <- c(7.2, 7.7, 8, 8.1, 8.3, 8.4, 8.4, 8.5, 8.6, 8.7, 9.1, 9.1, 9.1, 9.8, 10.1,
+10.3)
+HbSb <- c(8.1, 9.2, 10, 10.4, 10.6, 10.9, 11.1, 11.9, 12, 12.1)
+Hb <- data.frame(level = c(HbSS, HbSb), 
+                 category = c(rep("HbSS", length(HbSS)), rep("HbSb", length(HbSb))))
+print("HbSS")
+Hb |> 
+  filter(category == "HbSS") |> 
+  select(level) |>
+  glimpse()
+
+print("HbSb")
+Hb |> 
+  filter(category == "HbSb") |> 
+  select(level) |>
+  glimpse()
+```
+
+## Problem 17
+Use again the sickle-cell disease data introduced in Problem 13 (Worksheet 4).
+For the cases listed below, specify the null and alternative hypothesis. Then use R to perform the tests and give a careful interpretation.
+
+### a) $\mu_{\rm{HbS\beta}} = 10$ ($\alpha = .05$, two-sided)
+- $H_0: \mu_{\rm{HbS\beta}} = 10$
+- $H_1: \mu_{\rm{HbS\beta}} \neq 10$
+```{r p17a}
+HbSb |>
+  t.test(mu = 10, conf.level = 0.95)
+```
+10 is in the CI, accept $H_0$
+
+### b) $\mu_{\rm{HbS\beta}} = \mu_{\rm{HbSS}}$ ($\alpha = .001$, two-sided)
+- $H_0: \mu_{\rm{HbS\beta}} = \mu_{\rm{HbS}}$
+- $H_1: \mu_{\rm{HbS\beta}} \neq \mu_{\rm{HbS}}$
+
+```{r p17b}
+HbSb |>
+  t.test(HbSS, conf.level = 0.999)
+```
+0 is not in CI, reject $H_0$
+
+### (c) What changes, if one-sided tests are performed instead?
+The $H_0$ doesn't change, but the $H_1$ can be either:
+- left-tailed: $H_1^{'}: \mu < n$ or
+- right-tailed: $H_1^{''}: \mu > n$
+
+```{r p17c}
+HbSb |> t.test(mu = 10, conf.level = 0.95, alternative = "less")
+HbSb |> t.test(mu = 10, conf.level = 0.95, alternative = "greater")
+HbSb |> t.test(HbSS, conf.level = 0.999, alternative = "less")
+HbSb |> t.test(HbSS, conf.level = 0.999, alternative = "greater")
+```
+All one-sided test variations accept $H_0$, except for the last, which leads us to accept the alternative $H_1: \mu_{\rm{HbS\beta}} > \mu_{\rm{HbSS}}$.
+## Problem 18
+Anorexia is an eating disorder that is characterized by low weight, food restriction, fear of gaining weight and a strong desire to be thin. The dataset *anorexia* in the package *MASS* gives the weight of 29 females before and after a cognitive behavioral treatment (in pounds). Test whether the treatment was effective.
+
+- $H_0: \mu_{\rm{control}} = \mu_{\rm{cbt}}$
+- $H_1: \mu_{\rm{control}} < \mu_{\rm{cbt}}$  
+using $\alpha = 0.05$
+
+```{r p18}
+library(MASS)
+?anorexia
+
+anorexia.delta <- anorexia |>
+  mutate(Deltawt = Postwt - Prewt)
+
+control <- anorexia.delta |>
+  filter(Treat == "Cont")
+cbt <- anorexia.delta |>
+  filter(Treat == "CBT")
+
+alpha <- 0.05
+t.test(control$Deltawt, cbt$Deltawt, alternative = "less", conf.level = 1 - alpha)
+```
+$p > 0.05$, so accept $H_0$: The CBT treatment had no significant effect.

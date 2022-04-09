@@ -1,0 +1,139 @@
+---
+title: "Exercises 6"
+author: "Jan Hohenheim"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+## Setup
+
+```{r loading}
+rm(list = ls())
+library(ggplot2)
+library(ggthemes)
+library(dplyr)
+library(purrr)
+library(cowplot)
+library(latex2exp)
+library(glue)
+
+theme <- 
+  theme_solarized() #+ 
+  #theme(text = element_text(family = "Helvetica Neue"))
+```
+
+## Problem 19 (Binomial distribution)
+Suppose that among n = 95 Swiss males, eight are red-green colour blind. We are interested in estimating the proportion p of people suffering from such disease among the male population.
+
+### a) Is a binomial model suitable for this problem?
+
+Yes, using $X \sim Bin(n_{\rm{tot}}, \frac{8}{95})$, where $n_{\rm{tot}}$ is the male population.
+
+### b) Calculate the maximum likelihood estimate (ML) $p_{\rm{ML}}$.
+
+```{r p19b}
+n <- 95
+x <- 8
+p_ml <- x/n
+glue("P_ML: {p_ml}")
+```
+
+### d) Use the R functions `binom.test()` and `prop.test()` to compute two-sided 95%-confidence intervals for the exact and for the approximate proportion. Compare the results.
+
+```{r p19d}
+binom.test(x, n)
+prop.test(x, n)
+```
+The normal approximation is a little bit higher than the exact test.
+
+### e) What is the meaning of the p-value?
+
+The p-value tells us the likelihood of a data at least as extreme as the one presented existing under H0. In this case, H0 postulates that p is equal to 0.5. We can see, that this is highly unlikely.
+
+### f) Compute the Wilson 95%-confidence interval and compare it to the confidence intervals from d).
+
+```{r p19f}
+wilson.ci <- function(x, n) {
+  q <- 1.96
+  mid <- (x + q^2 / 2) / (n + q^2)
+  se <- sqrt(n) / (n + q^2) * sqrt( x / n * (1 - x / n) + q^2 / (4 * n))
+  cbind(pmax(0, mid - q * se), pmin(1, mid + q*se))
+}
+wilson.ci(x, n)
+```
+The Wilson CI algorithm produces the most narrow CI.
+
+## Problem 20 (A simple clinical trial)
+
+A clinical trial is performed to compare two treatments, A and B, that are intended to treat a skin disease named psoriasis. The outcome shown in the following table is whether the patient’s skin cleared within 16 weeks of the start of treatment.  
+Use $\alpha = 0.05$ throughout this problem.
+
+### a) Compute for each of the two treatments a Wald type and a Wilson confidence interval for the proportion of patients whose skin cleared
+```{r p20a}
+wald.ci <- function(x, n) {
+  q <- 1.96
+  mid <- x / n
+  se <- sqrt(x * (n - x) / n^3)
+  cbind(max(0, mid - q * se), min(1, mid + q * se))
+}
+
+treatment_a <- data.frame(cleared = 9,
+                          not_cleared = 18)
+treatment_b <- data.frame(cleared = 5,
+                          not_cleared = 22)
+print("95% CIs for treatment A:")
+print("Wald:")
+wald.ci(treatment_a$cleared, sum(treatment_a))
+print("Wilson:")
+wilson.ci(treatment_a$cleared, sum(treatment_a))
+
+print("95% CIs for treatment B:")
+print("Wald:")
+wald.ci(treatment_b$cleared, sum(treatment_b))
+print("Wilson:")
+wilson.ci(treatment_b$cleared, sum(treatment_b))
+```
+Treatment A seems to be way better
+
+### b) Test whether the risk difference is significantly different to zero (i.e., RD = 0). Use both an exact (test of proportions) and an approximated approach (See 6.4.1 in the script)
+```{r p20b}
+tab <- matrix(c(9, 5, 18, 22), ncol = 2, byrow = TRUE)
+colnames(tab) <- c('A','B')
+rownames(tab) <- c('cleared','not_cleared')
+tab
+
+prop.test(tab, n = NULL)
+
+n1 <- sum(treatment_a)
+n2 <- sum(treatment_b)
+p1 <- treatment_a$cleared / n1
+p2 <- treatment_b$cleared / n2
+mu <- p1 - p2
+sigma <- sqrt(p1*(1 - p1)/n1 + p2*(1 - p2)/n2)
+c(qnorm(0.025, mu, sigma), qnorm(0.975, mu, sigma))
+```
+The exact and the approximate approach both accept H0
+
+### c) Compute CIs for both, relative risk (RR) and odds ratio (OR).
+
+```{r p20c}
+print("RR:")
+rr <- p1 / p2
+s <- sqrt(1/tab[1,1] + 1/tab[2,1] - 1/sum(tab[1,]) - 1/ sum(tab[2,]))
+exp(log(rr) + qnorm(c(.025, .975))*s)
+
+print("OR:")
+or <- tab[1]*tab[4]/(tab[2]*tab[3])
+s <- sqrt(sum(1/tab))
+exp(log(or) + qnorm(c(.025, .975))*s)
+```
+
+### d) How would the point estimate of the odds ratio change if we considered the proportions of patients whose skin did not clear?
+
+```{r p20d}
+print("OR of not cleared skin:")
+or <- (tab[2]/tab[1])/(tab[4]/tab[3])
+s <- sqrt(sum(1/tab))
+exp(log(or) + qnorm(c(.025, .975))*s)
+```

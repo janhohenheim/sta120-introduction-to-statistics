@@ -1,0 +1,186 @@
+---
+title: "STA120 Exercises 3"
+author: "Jan Hohenheim"
+date: "3/7/2022"
+output:
+  html_notebook: default
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+## Setup
+
+```{r loading, echo = FALSE}
+rm(list = ls())
+library(ggplot2)
+library(ggthemes)
+library(dplyr)
+library(purrr)
+library(cowplot)
+library(latex2exp)
+library(glue)
+
+theme <- 
+  theme_solarized() + 
+  theme(text = element_text(family = "Helvetica Neue"))
+```
+
+
+## Problem 8
+In this problem we visualize and derive some properties of the Poisson random variable with parameter $\lambda > 0$
+
+### a) 
+Visualize in R the cdf and pmf of X ~ Pois($\lambda$), for $\lambda = 1$ and $\lambda = 5.5$
+```{r p8a}
+
+plot_lambda <- function(lambda) {
+  n <- 15
+  x <- 0:n 
+  pmf <- x |>
+    map_dbl(dpois, lambda)
+  
+  cdf <- x |>
+    map_dbl(ppois, lambda)
+  
+  pmf_plot <- data.frame(x, probability = pmf) |>
+    ggplot(aes(x = x, y = probability)) +
+    geom_line(colour = "skyblue", alpha = 0.3, size = 1.2) +
+    geom_point(colour = "salmon") +
+    labs(title = TeX(glue("pmf of X ~ Pois($\\lambda$) with $\\lambda = {lambda}$")),
+         x = "x",
+         y = "f(x)") +
+    theme
+  
+  cdf_plot <- data.frame(x, cummulative_probability = cdf) |>
+    ggplot(aes(x = x, y = cummulative_probability)) +
+    geom_line(colour = "skyblue", alpha = 0.3, size = 1.2) +
+    geom_point(colour = "salmon") +
+    labs(title = TeX(glue("cdf of X ~ Pois($\\lambda$) with $\\lambda = {lambda}$")), 
+         x = "x",
+         y = TeX("P(X $\\leq$ x)")) +
+    theme
+  
+  plot_grid(pmf_plot, cdf_plot)
+}
+plot_lambda(1)
+plot_lambda(5.5)
+```
+
+### b) 
+For $\lambda = 1$ and $\lambda = 5.5$, sample from X1, ... , $X_n$ ~ Pois($\lambda$) with n = 200 and draw histograms. Compare the histograms with a). What do you expect to happen when n increases?
+
+```{r p8b}
+plot_pois_hist <- function(lambda){
+  n <- 200
+  plot <- data.frame(x = rpois(n, lambda)) |>
+    ggplot(aes(x = x)) +
+    geom_histogram(fill = "salmon", bins = 30, color = "white") +
+    theme
+  plot
+}
+plot_pois_hist(1)
+plot_pois_hist(5.5)
+```
+These plots will approach the pmfs with higher n
+
+### c) 
+Let X ~ Pois($\lambda$), with $\lambda$ = 3: calculate P(X $\leq$ 2), P(X < 2) and P(X $\geq$ 3)
+```{r p8c}
+lambda = 3
+
+p1 <- ppois(2, lambda)
+glue("P(X <= 2) = {p1}")
+
+p2 <- ppois(1, lambda)
+glue("P(X < 2) = P(X <= 1) = {p2}")
+
+p3 <- ppois(2, lambda, lower.tail = FALSE)
+glue("P(X >= 3) = P(X > 2) = {p3}")
+```
+
+### d)
+Plot the pmf of X ~ Pois($\lambda$), $\lambda$ = 5, and Y ∼ Bin(n, p) for n = 10, 100, 1000 with $\lambda$ = np. What can you conclude?
+
+```{r p8d}
+plot_pmfs <- function(n) {
+  x <- 1:n
+  lambda <- 5
+  pois_pmf <- x |>
+    map_dbl(dpois, lambda = lambda)
+  p <- lambda / n
+  bin_pmf <- x |>
+    map_dbl(dbinom, size = n, prob = p)
+  plot_pois <- data.frame(x = x, probability = pois_pmf) |>
+    ggplot(aes(x = x, y = probability)) +
+    geom_line(colour = "skyblue", alpha = 0.3, size = 1.2) +
+    geom_point(color = "salmon") +
+    labs(title = TeX(glue("X ~ Pois($\\lambda$) with $\\lambda = {lambda}$")),
+         x = "x",
+         y = "f(x)") +
+    xlim(0, 13) +
+    theme
+  plot_binom <- data.frame(x = x, probability = bin_pmf) |>
+    ggplot(aes(x = x, y = probability)) +
+    geom_line(colour = "skyblue", alpha = 0.3, size = 1.2) +
+    geom_point(color = "salmon") +
+    xlim(0, 13) +
+      labs(title = TeX(glue("X ~ Bin(n, p), n = {n}, p = {p}")),
+         x = "x",
+         y = "f(x)") +
+    theme
+  plot_grid(plot_pois, plot_binom)
+}
+
+ns <- c(10, 100, 1000)
+lapply(ns, plot_pmfs)
+```
+The graphs are pretty much the same, the two distributions approach each other.
+
+## Problem 10
+Let X1, ... , $X_n$ be independent and identically distributed (iid) random variables following Exp($\lambda$). Assume $\lambda$ = 2
+for the following.
+
+### a)
+Sample n = 100 random numbers from Exp($\lambda$). Visualize the data with a histogram and superimpose the theoretical density.
+```{r q10}
+n <- 100
+lambda <- 2
+sample = rexp(n, lambda)
+
+x <- 0:(n - 1)
+delta <- 0.2
+theoretical <- x |>
+  map_dbl(\(x) pexp(x + delta, lambda) - pexp(x, lambda)) * n
+
+
+plot <-
+  data_frame(x = x, sample = sample, theoretical = theoretical) |>
+  ggplot() +
+  geom_histogram(aes(x = sample), bins = 50, fill = "salmon", color = "white") +
+  geom_point(aes(x = x, y = theoretical), colour = "skyblue") +
+  geom_line(aes(x = x, y = theoretical), colour = "skyblue", size = 1.4, alpha = 0.4) +
+  xlim(0, 15) +
+  labs("X ~ Exp(2), sample and theory",
+       x = "x",
+       y = "count (real and theoretical") +
+  theme
+plot
+```
+### c)
+Draw a histogram of min(X1, . . . , X100) from 500 realizations and compare it to the theoretical result from part b)
+```{r p10c}
+lambda <- 2
+n <- 100
+m <- 500
+sample <- 1:m |>
+  map_dbl(\(.) rexp(n, lambda) |> min())
+
+plot <- 
+  data.frame(x = sample) |>
+  ggplot(aes(x = x)) +
+  geom_histogram(fill = "salmon", color = "white", bins = 50) +
+  theme
+plot
+```
+It seems to resemble a normal distribution with a $\mu$ a bit bigger than 0

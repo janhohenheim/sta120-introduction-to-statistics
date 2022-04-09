@@ -1,0 +1,118 @@
+---
+title: "exercises01"
+author: "Jan Hohenheim"
+date: "2/24/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Problem 1 (Introduction to R/RStudio)
+The aim of this exercise is to get some insight on the capabilities of the statistical software environment R and
+the integrated development environment __RStudio__.
+
+### (a) **R** has many built-in datasets, one example is __volcano__. Based on the help of the dataset, what is the name of the Volcano? Describe the dataset in a few words.
+```{r volcano}
+?volcano
+```
+
+The name of the volcano is Maunga Whau (Mt Eden). The data set is the height of the terrain in a given square in a grid, where each cell represents a terrain of 10 m by 10 m.
+
+### (b) Use the **R** help function to get information on how to use the *image()* function for plotting matrices. Display the volcano data.
+```{r volcano-image, echo=FALSE}
+?image
+image(volcano)
+```
+### (c) Install the package __fields__. Display the volcano data with the function __image.plot()__. What is the maximum height of the volcano?
+```{r fields}
+# install.packages("fields")
+require(fields)
+
+max(volcano)
+image.plot(volcano)
+```
+
+The highest point is 195 m high.
+
+### (d) Use the the R help function to find out the purpose of the function __demo()__ and have a look at the list of available demos. The demo of the function __persp()__ utilizes the volcano data to illustrate basic three-dimensional plotting. Call the demo and have a look at the plots.
+```{r persp, echo=FALSE}
+?demo
+demo(persp)
+```
+
+## Problem 2 (EDA of bivariate data)
+On www.isleroyalewolf.org/data/data/home.html the file isleroyale_graph_data_28Dec2011.xlsx contains popula-
+tion data from wolves and moose. The information in this file is extracted and saved in the file __01wolvesmoose.csv__.
+Download and read the file __01wolvesmoose.csv__ from the STA120 course page.
+
+### (a) Construct a boxplot and a QQ-plot of the moose and wolf data. Give a short interpretation.
+```{r qq}
+par( mfcol=c(2, 2))
+data <- read.csv("01_wolvesmoose.csv")
+?boxplot
+boxplot(data$Wolf, main="Wolf population")
+boxplot(data$Moose, main="Moose population")
+
+qqnorm(data$Wolf, main="Wolf population vs normal distribution")
+qqline(data$Wolf, col=2, main='')  # add read line 
+qqnorm(data$Moose, main="Moose population vs normal distribution")
+qqline(data$Moose, col=2, main='')  # add read line 
+```
+
+The wolf and moose populations seem to follow a very similar distribution, with the moose population being skewed to the right. The normal distribution fits for all but the outer of the 5 quantiles.
+
+### (b) Jointly visualize the wolves and moose data, as well as their abundances over the years. Give a short interpretation of what you see in the figures. (Of course you may compare the result with what is given on the aforementioned web page).
+
+```{r joint}
+pairs(x=data, main="Moose and wolf population against each other and years")
+```
+
+The populations seem to follow the Lotka-Volterra model: The wolf population lags behind the moose population, they both oscillate. Plotting the populations against each other reveals that a large amount of either population is not compatible with a large amount of the other.
+
+## Problem 3 (EDA of multivariate data)
+In this problem we want to explore the classical __mtcars__ dataset (directly available through the package __datasets__).
+Perform an EDA thereof and provide at least three meaningful plots (as part of the EDA) and a short description
+of what they display. In what measurement scale are the variables stored and what would be the natural or
+original measurement scale?
+
+```{r eda, echo=FALSE}
+require(datasets)
+?mtcars
+str(mtcars)
+summary(mtcars)
+which(is.na(mtcars))
+par(mfcol=c(1,2))
+boxplot(mtcars[3:4])
+boxplot(cbind(mtcars[1:2], mtcars[5:11]))
+```
+```{r eda3}
+pairs(mtcars)
+```
+
+**Data collection**: Extracter from 1974 *Motor Trend* US magazine. No missing values.
+Types of data:  
+- **Discrete**: cyl (Number of cylinders), vs (Engine, 0 = V-shaped, 1 = straight), gear (Number of forward gears), carb (Number of carburetors), am (Transmission, 0 = automatic, 1 = manual)
+- **Continuous**: mpg (Miles/(US) gallon), disp (Displacement in cubic inches), hp (Gross horsepower), drat (Rear axle ratio), wt (Weight in 1000s of lbs), qsec (1/4 mile speed)
+
+```{r eda2}
+plot(mtcars$wt, 
+     mtcars$mpg, 
+     main="Miles per gallon vs weight", 
+     xlab="weight (1000s of lbs)", 
+     ylab="Miles (US gallon)")
+plot(mtcars$cyl, 
+     mtcars$mpg, 
+     main="Miles per gallon vs number of cylinders", 
+     xlab="number of cylinders", 
+     ylab="Miles (US gallon)")
+plot(mtcars$disp, 
+     mtcars$hp, 
+     main="Displacement vs horsepower", 
+     xlab="gross horsepower", 
+     ylab="displacement (cubic inches)")
+```
+
+It seems that the miles per gallon correlates negatively with the weight and the number of cylinders. It also seems that the displacement correlates with the horsepower.
+
